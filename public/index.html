@@ -1,0 +1,152 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      background-color: #f9f9f9;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #messages {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #fff;
+    }
+
+    .message {
+      margin-bottom: 5px;
+    }
+
+    #messageInput {
+      width: calc(100% - 70px);
+      margin-right: 10px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    #sendBtn {
+      width: 60px;
+      padding: 8px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    #currentUser {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .join {
+      color: green;
+    }
+
+    .leave {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chat App</h1>
+
+    <!-- Display current username -->
+    <div id="currentUser">Current User: </div>
+
+    <div id="chat">
+      <div id="messages"></div>
+      <div>
+        <input type="text" id="messageInput" placeholder="Type a message...">
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Join the chat
+    let username = prompt("Enter your username:");
+    while (!username) {
+      username = prompt("Please enter a valid username:");
+    }
+    document.getElementById("currentUser").textContent += username;
+    socket.emit("join", username);
+
+    const messages = document.getElementById("messages");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    // Receive message from server
+    socket.on("message", ({ username, message }) => {
+      const messageElem = document.createElement("div");
+      messageElem.classList.add("message");
+      messageElem.textContent = `${username}: ${message}`;
+      messages.appendChild(messageElem);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    // Send message
+    const sendMessage = () => {
+      const message = messageInput.value.trim();
+      if (message) {
+        socket.emit("user-message", message);
+        messageInput.value = "";
+      }
+    };
+
+    sendBtn.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keypress", (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // Update online status
+    socket.on("user-joined", (username) => {
+      const userElem = document.createElement("div");
+      userElem.classList.add("message", "join"); // Add join class
+      userElem.textContent = `${username} has joined the chat`;
+      messages.appendChild(userElem);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    socket.on("user-left", (username) => {
+      const userElem = document.createElement("div");
+      userElem.classList.add("message", "leave"); // Add leave class
+      userElem.textContent = `${username} has left the chat`;
+      messages.appendChild(userElem);
+      messages.scrollTop = messages.scrollHeight;
+    });
+  </script>
+</body>
+</html>
